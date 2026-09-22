@@ -15,7 +15,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -95,8 +94,10 @@ public class Job {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected Job() {
-        // Required by JPA
+    public Job() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public UUID getId() {
