@@ -24,4 +24,19 @@ public class JobController {
             @Valid @RequestBody CreateJobRequest request) {
         return jobService.createJob(userId, request);
     }
+
+    @PatchMapping("/{jobId}/pause")
+    public void pauseJob(@PathVariable UUID jobId) {
+        jobService.pauseJob(jobId);
+    }
+
+    @PatchMapping("/{jobId}/resume")
+    public void resumeJob(@PathVariable UUID jobId) {
+        jobService.resumeJob(jobId);
+    }
+
+    @DeleteMapping("/{jobId}")
+    public void deleteJob(@PathVariable UUID jobId) {
+        jobService.deleteJob(jobId);
+    }
 }

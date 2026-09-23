@@ -51,6 +51,9 @@ public class Job {
     @Column(nullable = false, length = 100)
     private String timezone;
 
+    @Column(name = "start_at")
+    private Instant startAt;
+
     @Column(name = "next_run_at")
     private Instant nextRunAt;
 
@@ -114,6 +117,10 @@ public class Job {
 
     public String getDescription() {
         return description;
+    }
+
+    public Instant getStartAt() {
+        return startAt;
     }
 
     public JobStatus getStatus() {
@@ -186,6 +193,10 @@ public class Job {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public void setStartAt(Instant startAt) {
+        this.startAt = startAt;
     }
 
     public void setName(String name) {

@@ -8,37 +8,40 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.time.Instant;
 import java.util.Map;
 
 public record CreateJobRequest(
 
-        @NotBlank @Size(max = 150) String name,
+                @NotBlank @Size(max = 150) String name,
 
-        String description,
+                String description,
 
-        @NotNull ScheduleType scheduleType,
+                @NotNull ScheduleType scheduleType,
 
-        @NotBlank String scheduleValue,
+                @NotBlank String scheduleValue,
 
-        @NotBlank String timezone,
+                @NotBlank String timezone,
 
-        @NotNull HttpMethod httpMethod,
+                Instant startAt,
 
-        @NotBlank String url,
+                @NotNull HttpMethod httpMethod,
 
-        Map<String, String> headers,
+                @NotBlank String url,
 
-        Map<String, String> queryParams,
+                Map<String, String> headers,
 
-        JsonNode body,
+                Map<String, String> queryParams,
 
-        @Size(max = 100) String contentType,
+                JsonNode body,
 
-        @NotNull @Min(1) Integer timeoutMs,
+                @Size(max = 100) String contentType,
 
-        @NotNull @Min(0) Integer maxRetries,
+                @NotNull @Min(1) Integer timeoutMs,
 
-        @NotNull @Min(1) Long initialRetryDelayMs,
+                @NotNull @Min(0) Integer maxRetries,
 
-        @NotNull @Min(1) Long maxRetryDelayMs) {
+                @NotNull @Min(1) Long initialRetryDelayMs,
+
+                @NotNull @Min(1) Long maxRetryDelayMs) {
 }

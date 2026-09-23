@@ -59,7 +59,7 @@ public class Execution {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected Execution() {
+    public Execution() {
         // Required by JPA
     }
 
@@ -145,5 +145,13 @@ public class Execution {
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

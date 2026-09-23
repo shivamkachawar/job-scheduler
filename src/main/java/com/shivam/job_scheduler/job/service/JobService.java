@@ -8,4 +8,10 @@ import java.util.UUID;
 public interface JobService {
 
     Job createJob(UUID userId, CreateJobRequest request);
+
+    void pauseJob(UUID jobId);
+
+    void resumeJob(UUID jobId);
+
+    void deleteJob(UUID jobId);
 }
