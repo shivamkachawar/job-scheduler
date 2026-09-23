@@ -62,4 +62,15 @@ public class ExecutionServiceImpl implements ExecutionService {
         return executionRepository.save(execution);
     }
 
+    @Override
+    @Transactional
+    public void completeExecution(Execution execution, ExecutionStatus status) {
+
+        execution.setStatus(status);
+        execution.setCompletedAt(Instant.now());
+        execution.setUpdatedAt(Instant.now());
+
+        executionRepository.save(execution);
+    }
+
 }
