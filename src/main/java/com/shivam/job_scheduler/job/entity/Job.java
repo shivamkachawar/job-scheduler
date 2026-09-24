@@ -79,7 +79,7 @@ public class Job {
     @Column(name = "content_type", length = 100)
     private String contentType;
 
-    @Column(name = "timeout_ms", nullable = false)
+    @Column(name = "timeout_ms")
     private Integer timeoutMs;
 
     @Column(name = "max_retries", nullable = false)

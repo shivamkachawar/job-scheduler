@@ -1,0 +1,2 @@
+ALTER TABLE jobs
+ALTER COLUMN timeout_ms DROP NOT NULL;

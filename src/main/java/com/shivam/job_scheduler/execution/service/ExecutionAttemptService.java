@@ -47,6 +47,8 @@ public class ExecutionAttemptService {
         attempt.setHttpStatusCode(result.httpStatusCode());
         attempt.setResponseBody(result.responseBody());
         attempt.setDurationMs(result.durationMs());
+        attempt.setErrorType(result.errorType());
+        attempt.setErrorMessage(result.errorMessage());
 
         executionAttemptRepository.save(attempt);
     }

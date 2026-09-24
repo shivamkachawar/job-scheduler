@@ -8,6 +8,7 @@ import com.shivam.job_scheduler.execution.service.ExecutionClaimService;
 import com.shivam.job_scheduler.execution.service.ExecutionService;
 import com.shivam.job_scheduler.execution.service.HttpExecutionResult;
 import com.shivam.job_scheduler.execution.service.HttpJobExecutor;
+import com.shivam.job_scheduler.execution.service.RetryPolicy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,17 +29,20 @@ public class ExecutionWorker {
     private final ExecutionAttemptService executionAttemptService;
     private final HttpJobExecutor httpJobExecutor;
     private final ExecutionService executionService;
+    private final RetryPolicy retryPolicy;
 
     public ExecutionWorker(
             ExecutionClaimService executionClaimService,
             ExecutionAttemptService executionAttemptService,
             HttpJobExecutor httpJobExecutor,
-            ExecutionService executionService) {
+            ExecutionService executionService,
+            RetryPolicy retryPolicy) {
 
         this.executionClaimService = executionClaimService;
         this.executionAttemptService = executionAttemptService;
         this.httpJobExecutor = httpJobExecutor;
         this.executionService = executionService;
+        this.retryPolicy = retryPolicy;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -75,22 +79,65 @@ public class ExecutionWorker {
                         Execution executionWithJob = executionClaimService.findExecutionWithJob(
                                 execution.getId());
 
-                        ExecutionAttempt attempt = executionAttemptService.startAttempt(
-                                executionWithJob,
-                                1);
+                        int attemptNumber = 1;
 
-                        HttpExecutionResult result = httpJobExecutor.execute(
-                                executionWithJob.getJob());
+                        while (true) {
 
-                        executionAttemptService.completeAttempt(
-                                attempt,
-                                result);
+                            ExecutionAttempt attempt = executionAttemptService.startAttempt(
+                                    executionWithJob,
+                                    attemptNumber);
 
-                        executionService.completeExecution(
-                                execution,
-                                result.success()
-                                        ? ExecutionStatus.SUCCESS
-                                        : ExecutionStatus.FAILED);
+                            HttpExecutionResult result = httpJobExecutor.execute(
+                                    executionWithJob.getJob());
+
+                            executionAttemptService.completeAttempt(
+                                    attempt,
+                                    result);
+
+                            if (result.success()) {
+                                executionService.completeExecution(
+                                        executionWithJob,
+                                        ExecutionStatus.SUCCESS);
+                                break;
+                            }
+
+                            boolean shouldRetry = retryPolicy.shouldRetry(
+                                    result.errorType(),
+                                    result.httpStatusCode(),
+                                    attemptNumber,
+                                    executionWithJob.getMaxRetries());
+
+                            if (!shouldRetry) {
+                                executionService.completeExecution(
+                                        executionWithJob,
+                                        ExecutionStatus.FAILED);
+                                break;
+                            }
+
+                            long delay = retryPolicy.calculateDelay(
+                                    executionWithJob.getInitialRetryDelayMs(),
+                                    executionWithJob.getMaxRetryDelayMs(),
+                                    attemptNumber);
+
+                            log.info(
+                                    "Retrying execution: id={}, attempt={}, delayMs={}",
+                                    executionWithJob.getId(),
+                                    attemptNumber + 1,
+                                    delay);
+
+                            try {
+                                Thread.sleep(delay);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+
+                                executionService.completeExecution(
+                                        executionWithJob,
+                                        ExecutionStatus.FAILED);
+                                break;
+                            }
+
+                            attemptNumber++;
+                        }
                     }
                 }
 

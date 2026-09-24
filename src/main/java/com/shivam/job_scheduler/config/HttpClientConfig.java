@@ -2,13 +2,14 @@ package com.shivam.job_scheduler.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestClient;
+
+import java.net.http.HttpClient;
 
 @Configuration
-public class RestClientConfig {
+public class HttpClientConfig {
 
     @Bean
-    public RestClient.Builder restClientBuilder() {
-        return RestClient.builder();
+    public HttpClient httpClient() {
+        return HttpClient.newHttpClient();
     }
 }

@@ -37,7 +37,7 @@ public record CreateJobRequest(
 
                 @Size(max = 100) String contentType,
 
-                @NotNull @Min(1) Integer timeoutMs,
+                @Min(1) Integer timeoutMs,
 
                 @NotNull @Min(0) Integer maxRetries,
 
