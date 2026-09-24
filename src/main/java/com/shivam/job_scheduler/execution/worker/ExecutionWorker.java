@@ -52,6 +52,10 @@ public class ExecutionWorker {
         workerThread.start();
     }
 
+    private void testWorkerFailure() {
+        throw new RuntimeException("Intentional worker failure test");
+    }
+
     private void runWorker() {
         log.info("Execution worker started");
 
@@ -79,64 +83,97 @@ public class ExecutionWorker {
                         Execution executionWithJob = executionClaimService.findExecutionWithJob(
                                 execution.getId());
 
-                        int attemptNumber = 1;
+                        ExecutionAttempt currentAttempt = null;
 
-                        while (true) {
+                        try {
 
-                            ExecutionAttempt attempt = executionAttemptService.startAttempt(
-                                    executionWithJob,
-                                    attemptNumber);
+                            int attemptNumber = 1;
 
-                            HttpExecutionResult result = httpJobExecutor.execute(
-                                    executionWithJob.getJob());
+                            while (true) {
 
-                            executionAttemptService.completeAttempt(
-                                    attempt,
-                                    result);
-
-                            if (result.success()) {
-                                executionService.completeExecution(
+                                currentAttempt = executionAttemptService.startAttempt(
                                         executionWithJob,
-                                        ExecutionStatus.SUCCESS);
-                                break;
+                                        attemptNumber);
+
+                                // testWorkerFailure(); // Uncomment this line to test worker failure handling
+
+                                HttpExecutionResult result = httpJobExecutor.execute(
+                                        executionWithJob.getJob());
+
+                                executionAttemptService.completeAttempt(
+                                        currentAttempt,
+                                        result);
+
+                                if (result.success()) {
+
+                                    executionService.completeExecution(
+                                            executionWithJob,
+                                            ExecutionStatus.SUCCESS);
+
+                                    break;
+                                }
+
+                                boolean shouldRetry = retryPolicy.shouldRetry(
+                                        result.errorType(),
+                                        result.httpStatusCode(),
+                                        attemptNumber,
+                                        executionWithJob.getMaxRetries());
+
+                                if (!shouldRetry) {
+
+                                    executionService.completeExecution(
+                                            executionWithJob,
+                                            ExecutionStatus.FAILED);
+
+                                    break;
+                                }
+
+                                long delay = retryPolicy.calculateDelay(
+                                        executionWithJob.getInitialRetryDelayMs(),
+                                        executionWithJob.getMaxRetryDelayMs(),
+                                        attemptNumber);
+
+                                log.info(
+                                        "Retrying execution: id={}, attempt={}, delayMs={}",
+                                        executionWithJob.getId(),
+                                        attemptNumber + 1,
+                                        delay);
+
+                                try {
+
+                                    Thread.sleep(delay);
+
+                                } catch (InterruptedException e) {
+
+                                    Thread.currentThread().interrupt();
+
+                                    executionService.completeExecution(
+                                            executionWithJob,
+                                            ExecutionStatus.FAILED);
+
+                                    break;
+                                }
+
+                                attemptNumber++;
                             }
 
-                            boolean shouldRetry = retryPolicy.shouldRetry(
-                                    result.errorType(),
-                                    result.httpStatusCode(),
-                                    attemptNumber,
-                                    executionWithJob.getMaxRetries());
+                        } catch (Exception e) {
 
-                            if (!shouldRetry) {
-                                executionService.completeExecution(
-                                        executionWithJob,
-                                        ExecutionStatus.FAILED);
-                                break;
-                            }
-
-                            long delay = retryPolicy.calculateDelay(
-                                    executionWithJob.getInitialRetryDelayMs(),
-                                    executionWithJob.getMaxRetryDelayMs(),
-                                    attemptNumber);
-
-                            log.info(
-                                    "Retrying execution: id={}, attempt={}, delayMs={}",
+                            log.error(
+                                    "Unexpected error while processing execution: id={}",
                                     executionWithJob.getId(),
-                                    attemptNumber + 1,
-                                    delay);
+                                    e);
 
-                            try {
-                                Thread.sleep(delay);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
+                            if (currentAttempt != null) {
 
-                                executionService.completeExecution(
-                                        executionWithJob,
-                                        ExecutionStatus.FAILED);
-                                break;
+                                executionAttemptService.failAttempt(
+                                        currentAttempt,
+                                        e);
                             }
 
-                            attemptNumber++;
+                            executionService.completeExecution(
+                                    executionWithJob,
+                                    ExecutionStatus.FAILED);
                         }
                     }
                 }
@@ -147,6 +184,8 @@ public class ExecutionWorker {
                 Thread.currentThread().interrupt();
                 log.info("Execution worker interrupted");
                 break;
+            } catch (Exception e) {
+                log.error("Unexpected error in execution worker", e);
             }
         }
     }

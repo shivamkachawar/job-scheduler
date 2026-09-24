@@ -1,5 +1,6 @@
 package com.shivam.job_scheduler.execution.service;
 
+import com.shivam.job_scheduler.execution.entity.AttemptErrorType;
 import com.shivam.job_scheduler.execution.entity.AttemptStatus;
 import com.shivam.job_scheduler.execution.entity.Execution;
 import com.shivam.job_scheduler.execution.entity.ExecutionAttempt;
@@ -49,6 +50,16 @@ public class ExecutionAttemptService {
         attempt.setDurationMs(result.durationMs());
         attempt.setErrorType(result.errorType());
         attempt.setErrorMessage(result.errorMessage());
+
+        executionAttemptRepository.save(attempt);
+    }
+
+    public void failAttempt(ExecutionAttempt attempt, Exception e) {
+
+        attempt.setStatus(AttemptStatus.FAILED);
+        attempt.setCompletedAt(Instant.now());
+        attempt.setErrorType(AttemptErrorType.UNKNOWN);
+        attempt.setErrorMessage(e.getMessage());
 
         executionAttemptRepository.save(attempt);
     }
