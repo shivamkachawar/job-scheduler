@@ -2,6 +2,8 @@ package com.shivam.job_scheduler.kafka;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.kafka.support.SendResult;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class KafkaProducer {
@@ -12,7 +14,9 @@ public class KafkaProducer {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void send(ExecutionMessage message) {
-        kafkaTemplate.send("job-executions", message);
+    public CompletableFuture<SendResult<String, ExecutionMessage>> send(
+            ExecutionMessage message) {
+
+        return kafkaTemplate.send("job-executions", message);
     }
 }

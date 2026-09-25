@@ -7,6 +7,7 @@ import com.shivam.job_scheduler.job.entity.JobStatus;
 import com.shivam.job_scheduler.job.repository.JobRepository;
 import com.shivam.job_scheduler.kafka.ExecutionMessage;
 import com.shivam.job_scheduler.kafka.KafkaProducer;
+import com.shivam.job_scheduler.outbox.service.OutboxService;
 
 import jakarta.transaction.Transactional;
 import org.slf4j.LoggerFactory;
@@ -26,14 +27,17 @@ public class ScheduledJobProcessor {
     private final JobRepository jobRepository;
     private final JobScheduleQueue scheduleQueue;
     private final KafkaProducer kafkaProducer;
+    private final OutboxService outboxService;
 
     public ScheduledJobProcessor(ExecutionService executionService, JobSchedulingService jobSchedulingService,
-            JobRepository jobRepository, JobScheduleQueue scheduleQueue, KafkaProducer kafkaProducer) {
+            JobRepository jobRepository, JobScheduleQueue scheduleQueue, KafkaProducer kafkaProducer,
+            OutboxService outboxService) {
         this.executionService = executionService;
         this.jobSchedulingService = jobSchedulingService;
         this.jobRepository = jobRepository;
         this.scheduleQueue = scheduleQueue;
         this.kafkaProducer = kafkaProducer;
+        this.outboxService = outboxService;
     }
 
     @Transactional
@@ -57,7 +61,7 @@ public class ScheduledJobProcessor {
                     "SCHEDULER_UNAVAILABLE");
         } else {
             Execution execution = executionService.createExecution(currentJob);
-            kafkaProducer.send(new ExecutionMessage(execution.getId()));
+            outboxService.createExecutionRequestedEvent(execution.getId());
 
         }
 
