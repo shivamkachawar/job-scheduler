@@ -4,18 +4,23 @@ import com.shivam.job_scheduler.execution.entity.Execution;
 import com.shivam.job_scheduler.execution.entity.ExecutionStatus;
 import com.shivam.job_scheduler.execution.repository.ExecutionRepository;
 import com.shivam.job_scheduler.job.entity.Job;
+import com.shivam.job_scheduler.outbox.repository.OutboxEventRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class ExecutionServiceImpl implements ExecutionService {
 
     private final ExecutionRepository executionRepository;
+    private final OutboxEventRepository outboxEventRepository;
 
-    public ExecutionServiceImpl(ExecutionRepository executionRepository) {
+    public ExecutionServiceImpl(ExecutionRepository executionRepository, OutboxEventRepository outboxEventRepository) {
         this.executionRepository = executionRepository;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     @Override
@@ -73,4 +78,30 @@ public class ExecutionServiceImpl implements ExecutionService {
         executionRepository.save(execution);
     }
 
+    @Override
+    @Transactional
+    public boolean markMissedAndExpire(UUID executionId) {
+
+        Instant now = Instant.now();
+
+        int updatedExecutions = executionRepository.markMissedIfPending(
+                executionId,
+                ExecutionStatus.PENDING,
+                ExecutionStatus.MISSED,
+                "DELIVERY_DEADLINE_EXCEEDED",
+                now,
+                now.minusSeconds(60));
+
+        if (updatedExecutions == 0) {
+            return false;
+        }
+
+        int expiredEvents = outboxEventRepository.expirePendingEvent(executionId, now);
+
+        if (expiredEvents > 0) {
+            System.out.println("Expired pending outbox event for execution: " + executionId);
+        }
+
+        return true;
+    }
 }

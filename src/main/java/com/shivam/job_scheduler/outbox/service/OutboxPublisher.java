@@ -1,6 +1,7 @@
 package com.shivam.job_scheduler.outbox.service;
 
 import com.shivam.job_scheduler.kafka.KafkaProducer;
+import com.shivam.job_scheduler.execution.service.ExecutionService;
 import com.shivam.job_scheduler.kafka.ExecutionMessage;
 import com.shivam.job_scheduler.outbox.entity.OutboxEvent;
 import com.shivam.job_scheduler.outbox.repository.OutboxEventRepository;
@@ -17,23 +18,50 @@ public class OutboxPublisher {
 
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaProducer kafkaProducer;
+    private final ExecutionService executionService;
 
     public OutboxPublisher(
             OutboxEventRepository outboxEventRepository,
-            KafkaProducer kafkaProducer) {
-
+            KafkaProducer kafkaProducer,
+            ExecutionService executionService) {
         this.outboxEventRepository = outboxEventRepository;
         this.kafkaProducer = kafkaProducer;
+        this.executionService = executionService;
     }
 
     @Scheduled(fixedDelay = 1000)
     public void publishPendingEvents() {
 
         List<OutboxEvent> events = outboxEventRepository
-                .findTop100ByPublishedAtIsNullOrderByCreatedAtAsc();
+                .findTop100ByPublishedAtIsNullAndExpiredAtIsNullOrderByCreatedAtAsc();
 
         for (OutboxEvent event : events) {
             try {
+                // Get the scheduled time from the event payload.
+                Object scheduledAtValue = event.getPayload().get("scheduledAt");
+
+                // Fallback for older events that don't contain scheduledAt.
+                Instant scheduledAt = scheduledAtValue != null
+                        ? Instant.parse(scheduledAtValue.toString())
+                        : event.getCreatedAt();
+
+                // Allow 5 seconds for dispatching the execution.
+                Instant deadline = scheduledAt.plusSeconds(60);
+
+                if (Instant.now().isAfter(deadline)) {
+
+                    boolean markedMissed = executionService.markMissedAndExpire(
+                            event.getAggregateId());
+
+                    if (markedMissed) {
+                        System.out.println(
+                                "Execution marked MISSED due to delivery deadline: "
+                                        + event.getAggregateId());
+                    }
+
+                    continue;
+                }
+
                 UUID executionId = UUID.fromString(
                         event.getPayload()
                                 .get("executionId")

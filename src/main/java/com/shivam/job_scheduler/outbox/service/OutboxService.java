@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.UUID;
+import java.time.Instant;
 
 @Service
 public class OutboxService {
@@ -16,12 +17,14 @@ public class OutboxService {
         this.outboxEventRepository = outboxEventRepository;
     }
 
-    public void createExecutionRequestedEvent(UUID executionId) {
+    public void createExecutionRequestedEvent(UUID executionId, Instant scheduledAt) {
 
         OutboxEvent event = new OutboxEvent(
                 "EXECUTION_REQUESTED",
                 executionId,
-                Map.of("executionId", executionId.toString()));
+                Map.of(
+                        "executionId", executionId.toString(),
+                        "scheduledAt", scheduledAt.toString()));
 
         outboxEventRepository.save(event);
     }

@@ -61,7 +61,7 @@ public class ScheduledJobProcessor {
                     "SCHEDULER_UNAVAILABLE");
         } else {
             Execution execution = executionService.createExecution(currentJob);
-            outboxService.createExecutionRequestedEvent(execution.getId());
+            outboxService.createExecutionRequestedEvent(execution.getId(), execution.getScheduledAt());
 
         }
 

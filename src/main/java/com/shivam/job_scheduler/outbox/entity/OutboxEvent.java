@@ -32,6 +32,9 @@ public class OutboxEvent {
     @Column(name = "published_at")
     private Instant publishedAt;
 
+    @Column(name = "expired_at")
+    private Instant expiredAt;
+
     protected OutboxEvent() {
     }
 
@@ -78,5 +81,13 @@ public class OutboxEvent {
 
     public void setPublishedAt(Instant publishedAt) {
         this.publishedAt = publishedAt;
+    }
+
+    public Instant getExpiredAt() {
+        return expiredAt;
+    }
+
+    public void setExpiredAt(Instant expiredAt) {
+        this.expiredAt = expiredAt;
     }
 }
