@@ -1,9 +1,12 @@
 package com.shivam.job_scheduler.scheduling;
 
+import com.shivam.job_scheduler.execution.entity.Execution;
 import com.shivam.job_scheduler.execution.service.ExecutionService;
 import com.shivam.job_scheduler.job.entity.Job;
 import com.shivam.job_scheduler.job.entity.JobStatus;
 import com.shivam.job_scheduler.job.repository.JobRepository;
+import com.shivam.job_scheduler.kafka.ExecutionMessage;
+import com.shivam.job_scheduler.kafka.KafkaProducer;
 
 import jakarta.transaction.Transactional;
 import org.slf4j.LoggerFactory;
@@ -22,13 +25,15 @@ public class ScheduledJobProcessor {
     private final JobSchedulingService jobSchedulingService;
     private final JobRepository jobRepository;
     private final JobScheduleQueue scheduleQueue;
+    private final KafkaProducer kafkaProducer;
 
     public ScheduledJobProcessor(ExecutionService executionService, JobSchedulingService jobSchedulingService,
-            JobRepository jobRepository, JobScheduleQueue scheduleQueue) {
+            JobRepository jobRepository, JobScheduleQueue scheduleQueue, KafkaProducer kafkaProducer) {
         this.executionService = executionService;
         this.jobSchedulingService = jobSchedulingService;
         this.jobRepository = jobRepository;
         this.scheduleQueue = scheduleQueue;
+        this.kafkaProducer = kafkaProducer;
     }
 
     @Transactional
@@ -51,7 +56,9 @@ public class ScheduledJobProcessor {
                     currentJob,
                     "SCHEDULER_UNAVAILABLE");
         } else {
-            executionService.createExecution(currentJob);
+            Execution execution = executionService.createExecution(currentJob);
+            kafkaProducer.send(new ExecutionMessage(execution.getId()));
+
         }
 
         Instant nextRun = jobSchedulingService.calculateNextFutureRun(currentJob, now);
