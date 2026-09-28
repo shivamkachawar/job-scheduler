@@ -5,8 +5,6 @@ import com.shivam.job_scheduler.execution.service.ExecutionService;
 import com.shivam.job_scheduler.job.entity.Job;
 import com.shivam.job_scheduler.job.entity.JobStatus;
 import com.shivam.job_scheduler.job.repository.JobRepository;
-import com.shivam.job_scheduler.kafka.ExecutionMessage;
-import com.shivam.job_scheduler.kafka.KafkaProducer;
 import com.shivam.job_scheduler.outbox.service.OutboxService;
 
 import jakarta.transaction.Transactional;
@@ -26,17 +24,14 @@ public class ScheduledJobProcessor {
     private final JobSchedulingService jobSchedulingService;
     private final JobRepository jobRepository;
     private final JobScheduleQueue scheduleQueue;
-    private final KafkaProducer kafkaProducer;
     private final OutboxService outboxService;
 
     public ScheduledJobProcessor(ExecutionService executionService, JobSchedulingService jobSchedulingService,
-            JobRepository jobRepository, JobScheduleQueue scheduleQueue, KafkaProducer kafkaProducer,
-            OutboxService outboxService) {
+            JobRepository jobRepository, JobScheduleQueue scheduleQueue, OutboxService outboxService) {
         this.executionService = executionService;
         this.jobSchedulingService = jobSchedulingService;
         this.jobRepository = jobRepository;
         this.scheduleQueue = scheduleQueue;
-        this.kafkaProducer = kafkaProducer;
         this.outboxService = outboxService;
     }
 

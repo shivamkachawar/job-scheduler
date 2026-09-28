@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import com.shivam.job_scheduler.execution.entity.ExecutionStatus;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -55,4 +57,8 @@ public interface ExecutionRepository extends JpaRepository<Execution, UUID> {
                         @Param("reason") String reason,
                         @Param("completedAt") Instant completedAt,
                         @Param("deadlineCutoff") Instant deadlineCutoff);
+
+        Page<Execution> findByJob_IdOrderByScheduledAtDescIdDesc(
+                        UUID jobId,
+                        Pageable pageable);
 }

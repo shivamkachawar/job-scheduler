@@ -1,10 +1,18 @@
 package com.shivam.job_scheduler.job.controller;
 
 import com.shivam.job_scheduler.job.dto.CreateJobRequest;
+import com.shivam.job_scheduler.job.dto.JobDetailsResponse;
+import com.shivam.job_scheduler.job.dto.JobListResponse;
 import com.shivam.job_scheduler.job.entity.Job;
+import com.shivam.job_scheduler.job.service.JobDetailsService;
+import com.shivam.job_scheduler.job.service.JobListService;
 import com.shivam.job_scheduler.job.service.JobService;
 import jakarta.validation.Valid;
+
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
@@ -13,9 +21,13 @@ import java.util.UUID;
 public class JobController {
 
     private final JobService jobService;
+    private final JobListService jobListService;
+    private final JobDetailsService jobDetailsService;
 
-    public JobController(JobService jobService) {
+    public JobController(JobService jobService, JobListService jobListService, JobDetailsService jobDetailsService) {
         this.jobService = jobService;
+        this.jobListService = jobListService;
+        this.jobDetailsService = jobDetailsService;
     }
 
     @PostMapping
@@ -39,4 +51,18 @@ public class JobController {
     public void deleteJob(@PathVariable UUID jobId) {
         jobService.deleteJob(jobId);
     }
+
+    @GetMapping
+    public Page<JobListResponse> getJobs(
+            @RequestParam UUID userId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return jobListService.getJobs(userId, pageable);
+    }
+
+    @GetMapping("/{jobId}")
+    public JobDetailsResponse getJobDetails(
+            @PathVariable UUID jobId) {
+        return jobDetailsService.getJobDetails(jobId);
+    }
+
 }
